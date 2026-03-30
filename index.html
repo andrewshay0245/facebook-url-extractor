@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facebook Business Finder</title>
+    <title>Gmail Target Hunter</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -161,50 +161,70 @@
         .instructions li {
             margin-bottom: 8px;
         }
-        .search-helper {
-            background: #e3f2fd;
+        .strategy-box {
+            background: #e8f5e8;
+            border: 2px solid #4caf50;
             border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .strategy-box h3 {
+            margin: 0 0 15px 0;
+            color: #2e7d32;
+        }
+        .strategy-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .strategy-box li {
+            margin-bottom: 5px;
+        }
+        .gmail-highlight {
+            background: #fff8e1;
+            border-left: 4px solid #ff9800;
             padding: 15px;
             margin-top: 15px;
         }
-        .search-helper h4 {
+        .gmail-highlight h4 {
             margin: 0 0 10px 0;
-            color: #1976d2;
-        }
-        .search-template {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 8px;
-            font-family: monospace;
-            font-size: 11px;
-            margin-top: 8px;
-            color: #666;
+            color: #f57c00;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔍 Facebook Business Finder</h1>
-        <p class="subtitle">Extract business names from Facebook search text, then find their URLs</p>
+        <h1>📧 Gmail Target Hunter</h1>
+        <p class="subtitle">Find small businesses using Gmail (perfect Insomniac Labs targets)</p>
+        
+        <div class="strategy-box">
+            <h3>🎯 The Gmail Strategy</h3>
+            <p><strong>Gmail users = Perfect leads for Insomniac Labs!</strong></p>
+            <ul>
+                <li>Gmail address = Small business without professional website</li>
+                <li>Small business = Needs lead generation & automation</li>
+                <li>No fancy website = Easier to convert</li>
+                <li>Local businesses = High-value clients</li>
+            </ul>
+            <p><strong>Goal:</strong> Extract business names → Hunt for Gmail addresses → Perfect client list</p>
+        </div>
         
         <div class="instructions">
-            <h3>📋 Simple 3-Step Process:</h3>
+            <h3>📋 Step 1: Extract Business Names</h3>
             <ol>
                 <li><strong>Copy Facebook Results:</strong> Search Facebook for businesses, scroll down, copy all text (Cmd+A, Cmd+C)</li>
                 <li><strong>Extract Names:</strong> Paste below and click "Find Businesses"</li>
-                <li><strong>Get URLs:</strong> Google search each business name + "facebook" to find their pages</li>
+                <li><strong>Send to Hugo:</strong> Copy the business names and send to Hugo for Gmail hunting</li>
             </ol>
         </div>
         
         <textarea id="inputText" placeholder="Paste your Facebook search results here...
 
 Example of what to paste:
-Plumber Service · 94% recommend · 7631 South Avenue Suite F, Youngstown, OH
-ABC Plumbing Company
-Delivering the best plumbing and drain cleaning services
-Mr. Rooter Plumbing of Youngstown
-24/7 Plumber available
+ABC Plumbing Service · 94% recommend · 7631 South Avenue Suite F, Youngstown, OH
+Johnson's HVAC Company
+Delivering the best heating and cooling services  
+Smith Electric LLC
+Licensed electrician serving local area
 etc..."></textarea>
         
         <div class="buttons">
@@ -223,17 +243,20 @@ etc..."></textarea>
                 
                 <div class="business-list" id="businessList"></div>
                 
-                <div class="search-helper">
-                    <h4>🔍 Next Step: Find Facebook URLs</h4>
-                    <p>For each business below, search Google:</p>
-                    <div class="search-template">[Business Name] facebook site:facebook.com</div>
-                    <p style="margin-top: 8px; font-size: 12px;">
-                        <strong>Example:</strong> "ABC Plumbing facebook site:facebook.com" → Copy the Facebook URL from results
-                    </p>
+                <div class="gmail-highlight">
+                    <h4>📧 Next Step: Gmail Hunting</h4>
+                    <p>Hugo will search for Gmail addresses for each business using:</p>
+                    <ul>
+                        <li>Google search: "[Business Name] @gmail.com"</li>
+                        <li>Business directories (Yelp, YellowPages)</li>
+                        <li>Contact pages and listings</li>
+                    </ul>
+                    <p><strong>Result:</strong> CSV with businesses + Gmail addresses = Perfect Insomniac Labs leads!</p>
                 </div>
                 
                 <div class="copy-section">
-                    <h3>📋 Business Names (Copy for Google Searches)</h3>
+                    <h3>📋 Business Names for Gmail Hunting</h3>
+                    <p>Copy these names and send to Hugo:</p>
                     <textarea id="businessOutput" readonly></textarea>
                     <button class="btn-primary" onclick="copyToClipboard()" style="margin-top: 10px;">Copy All Names</button>
                 </div>
@@ -267,7 +290,8 @@ etc..."></textarea>
                 'restaurant', 'cafe', 'bar', 'grill', 'diner', 'bakery', 'salon',
                 'spa', 'fitness', 'gym', 'studio', 'clinic', 'dental', 'medical',
                 'auto', 'repair', 'shop', 'garage', 'body', 'glass', 'tire',
-                'cleaning', 'maintenance', 'pest', 'control', 'landscaping', 'lawn'
+                'cleaning', 'maintenance', 'pest', 'control', 'landscaping', 'lawn',
+                'roofing', 'flooring', 'painting', 'carpentry', 'masonry'
             ];
             
             // Common non-business terms to filter out
@@ -316,6 +340,8 @@ etc..."></textarea>
                         /^([A-Z][A-Za-z\s&'.-]+(?:Plumbing|Electric|HVAC|Heating|Cooling|Repair|Service|Company|LLC|Inc|Corp|Group|Solutions|Center|Shop))[^A-Za-z]/i,
                         // General business name at start of line
                         /^([A-Z][A-Za-z\s&'.-]{3,40})\s*[·•]/,
+                        // Business name followed by location
+                        /^([A-Z][A-Za-z\s&'.-]+)\s+(?:in|of|serving)\s+[A-Z]/i,
                     ];
                     
                     for (const pattern of patterns) {
@@ -330,6 +356,7 @@ etc..."></textarea>
                 // Clean and validate the business name
                 if (businessName) {
                     businessName = businessName.replace(/[·•].*$/, '').trim();
+                    businessName = businessName.replace(/\s+(in|of|serving)\s+.*$/i, '').trim();
                     
                     // Final validation
                     if (businessName.length > 3 && 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facebook Business Name Extractor</title>
+    <title>Facebook Business Finder</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -28,12 +28,12 @@
         }
         textarea {
             width: 100%;
-            height: 300px;
+            height: 250px;
             padding: 15px;
             border: 2px solid #d2d2d7;
             border-radius: 8px;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 13px;
             resize: vertical;
             margin-bottom: 20px;
         }
@@ -75,22 +75,33 @@
             margin-top: 20px;
             border-left: 4px solid #007aff;
         }
-        .name-list {
+        .business-list {
             background: #f2f2f7;
             border-radius: 6px;
             padding: 15px;
             margin-top: 15px;
-            max-height: 400px;
+            max-height: 300px;
             overflow-y: auto;
         }
-        .name-item {
-            padding: 8px 0;
+        .business-item {
+            padding: 8px 12px;
             border-bottom: 1px solid #d2d2d7;
-            font-family: monospace;
-            font-size: 13px;
+            font-size: 14px;
+            background: white;
+            border-radius: 4px;
+            margin-bottom: 5px;
         }
-        .name-item:last-child {
-            border-bottom: none;
+        .business-item:last-child {
+            margin-bottom: 0;
+        }
+        .business-name {
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+        .business-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
         }
         .stats {
             display: flex;
@@ -122,7 +133,7 @@
             margin: 0 0 10px 0;
             color: #2e7d32;
         }
-        #nameOutput {
+        #businessOutput {
             width: 100%;
             height: 150px;
             font-family: monospace;
@@ -150,13 +161,13 @@
         .instructions li {
             margin-bottom: 8px;
         }
-        .url-helper {
+        .search-helper {
             background: #e3f2fd;
             border-radius: 8px;
             padding: 15px;
             margin-top: 15px;
         }
-        .url-helper h4 {
+        .search-helper h4 {
             margin: 0 0 10px 0;
             color: #1976d2;
         }
@@ -164,38 +175,40 @@
             background: white;
             border: 1px solid #ddd;
             border-radius: 6px;
-            padding: 10px;
+            padding: 8px;
             font-family: monospace;
-            font-size: 12px;
-            margin-top: 10px;
+            font-size: 11px;
+            margin-top: 8px;
+            color: #666;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📋 Facebook Business Name Extractor</h1>
-        <p class="subtitle">Extract business names from Facebook search results, then find their pages</p>
+        <h1>🔍 Facebook Business Finder</h1>
+        <p class="subtitle">Extract business names from Facebook search text, then find their URLs</p>
         
         <div class="instructions">
-            <h3>📋 How to Use:</h3>
+            <h3>📋 Simple 3-Step Process:</h3>
             <ol>
-                <li>Go to Facebook and search for businesses (e.g. "plumber near me")</li>
-                <li>Scroll down to load more results (keep scrolling!)</li>
-                <li>Select all (Cmd+A or Ctrl+A) and copy (Cmd+C or Ctrl+C)</li>
-                <li>Paste the copied text below and click "Extract Names"</li>
-                <li>Use the Google search templates to find Facebook pages</li>
-                <li>Send the found URLs to Hugo for contact harvesting</li>
+                <li><strong>Copy Facebook Results:</strong> Search Facebook for businesses, scroll down, copy all text (Cmd+A, Cmd+C)</li>
+                <li><strong>Extract Names:</strong> Paste below and click "Find Businesses"</li>
+                <li><strong>Get URLs:</strong> Google search each business name + "facebook" to find their pages</li>
             </ol>
         </div>
         
-        <textarea id="inputText" placeholder="Paste your copied Facebook search results here...
+        <textarea id="inputText" placeholder="Paste your Facebook search results here...
 
-After scrolling through Facebook search results, select all the text on the page (Cmd+A) and copy it (Cmd+C), then paste it here.
-
-The tool will find all the business names and help you locate their Facebook pages."></textarea>
+Example of what to paste:
+Plumber Service · 94% recommend · 7631 South Avenue Suite F, Youngstown, OH
+ABC Plumbing Company
+Delivering the best plumbing and drain cleaning services
+Mr. Rooter Plumbing of Youngstown
+24/7 Plumber available
+etc..."></textarea>
         
         <div class="buttons">
-            <button class="btn-primary" onclick="extractNames()">Extract Names</button>
+            <button class="btn-primary" onclick="findBusinesses()">Find Businesses</button>
             <button class="btn-secondary" onclick="clearAll()">Clear</button>
         </div>
         
@@ -203,30 +216,25 @@ The tool will find all the business names and help you locate their Facebook pag
             <div class="results">
                 <div class="stats">
                     <div class="stat">
-                        <div class="stat-number" id="nameCount">0</div>
-                        <div class="stat-label">Business Names</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-number" id="uniqueCount">0</div>
-                        <div class="stat-label">Unique Businesses</div>
+                        <div class="stat-number" id="businessCount">0</div>
+                        <div class="stat-label">Businesses Found</div>
                     </div>
                 </div>
                 
-                <div class="name-list" id="nameList"></div>
+                <div class="business-list" id="businessList"></div>
                 
-                <div class="url-helper">
-                    <h4>🔍 Find Facebook URLs</h4>
-                    <p>For each business name above, Google search:</p>
-                    <div class="search-template" id="searchTemplate">[Business Name] facebook</div>
-                    <p style="margin-top: 10px; font-size: 12px;">
-                        Copy each business name + "facebook" into Google, click the Facebook result, copy that URL.
+                <div class="search-helper">
+                    <h4>🔍 Next Step: Find Facebook URLs</h4>
+                    <p>For each business below, search Google:</p>
+                    <div class="search-template">[Business Name] facebook site:facebook.com</div>
+                    <p style="margin-top: 8px; font-size: 12px;">
+                        <strong>Example:</strong> "ABC Plumbing facebook site:facebook.com" → Copy the Facebook URL from results
                     </p>
                 </div>
                 
                 <div class="copy-section">
-                    <h3>📋 Business Names List</h3>
-                    <p>Copy these names to search for Facebook pages:</p>
-                    <textarea id="nameOutput" readonly></textarea>
+                    <h3>📋 Business Names (Copy for Google Searches)</h3>
+                    <textarea id="businessOutput" readonly></textarea>
                     <button class="btn-primary" onclick="copyToClipboard()" style="margin-top: 10px;">Copy All Names</button>
                 </div>
             </div>
@@ -234,7 +242,7 @@ The tool will find all the business names and help you locate their Facebook pag
     </div>
 
     <script>
-        function extractNames() {
+        function findBusinesses() {
             const text = document.getElementById('inputText').value;
             
             if (!text.trim()) {
@@ -242,93 +250,137 @@ The tool will find all the business names and help you locate their Facebook pag
                 return;
             }
             
-            // Split text into lines and look for business patterns
-            const lines = text.split('\n');
-            const businessNames = [];
+            const businesses = extractBusinessNames(text);
+            displayResults(businesses);
+        }
+        
+        function extractBusinessNames(text) {
+            const lines = text.split(/\r?\n/);
+            const businesses = [];
             const seen = new Set();
             
-            lines.forEach(line => {
+            // Common business keywords
+            const businessKeywords = [
+                'plumbing', 'electric', 'hvac', 'heating', 'cooling', 'repair', 'service',
+                'company', 'llc', 'inc', 'corp', 'group', 'solutions', 'contractor',
+                'associates', 'enterprises', 'systems', 'works', 'center', 'supply',
+                'restaurant', 'cafe', 'bar', 'grill', 'diner', 'bakery', 'salon',
+                'spa', 'fitness', 'gym', 'studio', 'clinic', 'dental', 'medical',
+                'auto', 'repair', 'shop', 'garage', 'body', 'glass', 'tire',
+                'cleaning', 'maintenance', 'pest', 'control', 'landscaping', 'lawn'
+            ];
+            
+            // Common non-business terms to filter out
+            const filterWords = [
+                'facebook', 'search', 'results', 'filters', 'posts', 'photos', 'videos',
+                'about', 'home', 'contact', 'reviews', 'more', 'see all', 'like',
+                'follow', 'share', 'recommend', 'always open', 'closed now', 'hours',
+                'directions', 'call', 'website', 'menu', 'book now', 'order online',
+                'delivery', 'takeout', 'dine in', 'sponsored', 'ad', 'promoted'
+            ];
+            
+            lines.forEach((line, index) => {
                 line = line.trim();
+                if (!line || line.length < 5) return;
                 
-                // Skip empty lines and common Facebook UI text
-                if (!line || line.length < 3) return;
-                
-                const skipPatterns = [
-                    'facebook', 'home', 'about', 'posts', 'photos', 'videos',
-                    'reviews', 'more', 'see all', 'like', 'follow', 'share',
-                    'search results', 'filters', 'people', 'pages', 'places',
-                    'events', 'groups', 'apps', 'marketplace', 'gaming',
-                    'watch', 'recent', 'suggested', 'sponsored', 'ad',
-                    'create', 'log in', 'sign up', 'help', 'privacy',
-                    'terms', 'cookies', 'see more', 'see fewer', 'hide',
-                    'report', 'block', 'unfollow', 'save', 'edit',
-                    'delete', 'copy', 'embed', 'download', 'upload'
-                ];
-                
-                const isUIText = skipPatterns.some(pattern => 
-                    line.toLowerCase().includes(pattern.toLowerCase())
-                );
-                
+                // Skip lines that are clearly UI elements or descriptions
+                const lowerLine = line.toLowerCase();
+                const isUIText = filterWords.some(word => lowerLine.includes(word));
                 if (isUIText) return;
                 
-                // Look for business-like names
-                const businessPatterns = [
-                    // Names ending with business words
-                    /([A-Z][A-Za-z\s&'-]+(?:Plumbing|Electric|HVAC|Heating|Cooling|Repair|Service|Company|LLC|Inc|Corp|Group|Solutions|Contractors?|Associates?))/g,
-                    // Names with location
-                    /([A-Z][A-Za-z\s&'-]+ (?:of|in) [A-Z][A-Za-z\s]+)/g,
-                    // General business names (2-6 words, starts with capital)
-                    /^([A-Z][A-Za-z]+(?:\s+[A-Z&'][A-Za-z]*){1,5})(?:\s|$)/g
-                ];
+                // Look for potential business names
+                let businessName = '';
                 
-                businessPatterns.forEach(pattern => {
-                    const matches = line.match(pattern);
-                    if (matches) {
-                        matches.forEach(match => {
-                            const name = match.trim();
-                            if (name.length > 5 && name.length < 100 && !seen.has(name.toLowerCase())) {
-                                seen.add(name.toLowerCase());
-                                businessNames.push(name);
-                            }
+                // Method 1: Lines that look like business names (start with capital, reasonable length)
+                if (/^[A-Z][A-Za-z0-9\s&'.-]+$/.test(line) && line.length < 80) {
+                    // Check if it contains business-like words or patterns
+                    const hasBusinessKeyword = businessKeywords.some(keyword => 
+                        lowerLine.includes(keyword.toLowerCase())
+                    );
+                    
+                    const hasBusinessPattern = (
+                        /\b(llc|inc|corp|company|service|repair|center|shop|group|solutions|systems)\b/i.test(line) ||
+                        /^[A-Z][A-Za-z]+\s+(Plumbing|Electric|HVAC|Heating|Cooling|Repair|Service)/i.test(line) ||
+                        /^[A-Z][A-Za-z\s]+\s+(LLC|Inc|Corp|Company|Service|Repair|Center|Shop|Group|Solutions)$/i.test(line)
+                    );
+                    
+                    if (hasBusinessKeyword || hasBusinessPattern) {
+                        businessName = line;
+                    }
+                }
+                
+                // Method 2: Extract from descriptive lines
+                if (!businessName) {
+                    const patterns = [
+                        // "ABC Plumbing Service · 94% recommend"
+                        /^([A-Z][A-Za-z\s&'.-]+(?:Plumbing|Electric|HVAC|Heating|Cooling|Repair|Service|Company|LLC|Inc|Corp|Group|Solutions|Center|Shop))[^A-Za-z]/i,
+                        // General business name at start of line
+                        /^([A-Z][A-Za-z\s&'.-]{3,40})\s*[·•]/,
+                    ];
+                    
+                    for (const pattern of patterns) {
+                        const match = line.match(pattern);
+                        if (match) {
+                            businessName = match[1].trim();
+                            break;
+                        }
+                    }
+                }
+                
+                // Clean and validate the business name
+                if (businessName) {
+                    businessName = businessName.replace(/[·•].*$/, '').trim();
+                    
+                    // Final validation
+                    if (businessName.length > 3 && 
+                        businessName.length < 80 &&
+                        !seen.has(businessName.toLowerCase()) &&
+                        !/^\d+$/.test(businessName) && // Not just numbers
+                        !/^[A-Za-z]\.$/.test(businessName)) { // Not just single letter + period
+                        
+                        seen.add(businessName.toLowerCase());
+                        businesses.push({
+                            name: businessName,
+                            source: line.substring(0, 100) + (line.length > 100 ? '...' : '')
                         });
                     }
-                });
-                
-                // Also check if the line itself looks like a business name
-                if (line.length > 5 && line.length < 100 && 
-                    /^[A-Z]/.test(line) && 
-                    !seen.has(line.toLowerCase()) &&
-                    !isUIText) {
-                    seen.add(line.toLowerCase());
-                    businessNames.push(line);
                 }
             });
             
-            displayResults(businessNames);
+            return businesses;
         }
         
-        function displayResults(names) {
+        function displayResults(businesses) {
             const resultsDiv = document.getElementById('results');
-            const nameCountDiv = document.getElementById('nameCount');
-            const uniqueCountDiv = document.getElementById('uniqueCount');
-            const nameListDiv = document.getElementById('nameList');
-            const nameOutput = document.getElementById('nameOutput');
+            const businessCountDiv = document.getElementById('businessCount');
+            const businessListDiv = document.getElementById('businessList');
+            const businessOutput = document.getElementById('businessOutput');
             
             // Update stats
-            nameCountDiv.textContent = names.length;
-            uniqueCountDiv.textContent = names.length;
+            businessCountDiv.textContent = businesses.length;
             
-            // Display name list
-            nameListDiv.innerHTML = '';
-            names.forEach((name, index) => {
+            // Display business list
+            businessListDiv.innerHTML = '';
+            businesses.forEach((business, index) => {
                 const div = document.createElement('div');
-                div.className = 'name-item';
-                div.textContent = `${index + 1}. ${name}`;
-                nameListDiv.appendChild(div);
+                div.className = 'business-item';
+                
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'business-name';
+                nameDiv.textContent = `${index + 1}. ${business.name}`;
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'business-info';
+                infoDiv.textContent = `From: ${business.source}`;
+                
+                div.appendChild(nameDiv);
+                div.appendChild(infoDiv);
+                businessListDiv.appendChild(div);
             });
             
-            // Prepare output for copying
-            nameOutput.value = names.join('\n');
+            // Prepare names for copying
+            const namesList = businesses.map(b => b.name).join('\n');
+            businessOutput.value = namesList;
             
             // Show results
             resultsDiv.style.display = 'block';
@@ -336,8 +388,8 @@ The tool will find all the business names and help you locate their Facebook pag
         }
         
         function copyToClipboard() {
-            const nameOutput = document.getElementById('nameOutput');
-            nameOutput.select();
+            const businessOutput = document.getElementById('businessOutput');
+            businessOutput.select();
             document.execCommand('copy');
             
             // Visual feedback
@@ -360,8 +412,8 @@ The tool will find all the business names and help you locate their Facebook pag
         // Auto-extract when text is pasted
         document.getElementById('inputText').addEventListener('paste', () => {
             setTimeout(() => {
-                extractNames();
-            }, 100);
+                findBusinesses();
+            }, 500);
         });
     </script>
 </body>

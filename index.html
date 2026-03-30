@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook URL Extractor</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f7;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1d1d1f;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #86868b;
+            margin-bottom: 30px;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 15px;
+            border: 2px solid #d2d2d7;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 20px;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #007aff;
+        }
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #007aff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        .btn-secondary {
+            background: #f2f2f7;
+            color: #1d1d1f;
+        }
+        .btn-secondary:hover {
+            background: #e5e5ea;
+        }
+        .results {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #007aff;
+        }
+        .url-list {
+            background: #f2f2f7;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .url-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #d2d2d7;
+            font-family: monospace;
+            font-size: 13px;
+            word-break: break-all;
+        }
+        .url-item:last-child {
+            border-bottom: none;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .stat {
+            padding: 10px 15px;
+            background: #e3f2fd;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        .copy-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e8;
+            border-radius: 8px;
+        }
+        .copy-section h3 {
+            margin: 0 0 10px 0;
+            color: #2e7d32;
+        }
+        #urlOutput {
+            width: 100%;
+            height: 150px;
+            font-family: monospace;
+            font-size: 12px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 10px;
+        }
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .instructions h3 {
+            margin: 0 0 15px 0;
+            color: #856404;
+        }
+        .instructions ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 Facebook URL Extractor</h1>
+        <p class="subtitle">Extract Facebook business URLs from search results</p>
+        
+        <div class="instructions">
+            <h3>📋 How to Use:</h3>
+            <ol>
+                <li>Go to Facebook and search for businesses (e.g. "plumber near me")</li>
+                <li>Scroll down to load more results (keep scrolling!)</li>
+                <li>Select all (Cmd+A or Ctrl+A) and copy (Cmd+C or Ctrl+C)</li>
+                <li>Paste the copied text below and click "Extract URLs"</li>
+                <li>Copy the clean URL list to send to Hugo for contact harvesting</li>
+            </ol>
+        </div>
+        
+        <textarea id="inputText" placeholder="Paste your copied Facebook search results here...
+
+After scrolling through Facebook search results, select all the text on the page (Cmd+A) and copy it (Cmd+C), then paste it here.
+
+The tool will automatically find all the Facebook business page URLs and clean them up for you."></textarea>
+        
+        <div class="buttons">
+            <button class="btn-primary" onclick="extractUrls()">Extract URLs</button>
+            <button class="btn-secondary" onclick="clearAll()">Clear</button>
+        </div>
+        
+        <div id="results" style="display: none;">
+            <div class="results">
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-number" id="urlCount">0</div>
+                        <div class="stat-label">URLs Found</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number" id="uniqueCount">0</div>
+                        <div class="stat-label">Unique Businesses</div>
+                    </div>
+                </div>
+                
+                <div class="url-list" id="urlList"></div>
+                
+                <div class="copy-section">
+                    <h3>📋 Ready for Harvester</h3>
+                    <p>Copy this list and send to Hugo:</p>
+                    <textarea id="urlOutput" readonly></textarea>
+                    <button class="btn-primary" onclick="copyToClipboard()" style="margin-top: 10px;">Copy All URLs</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function extractUrls() {
+            const text = document.getElementById('inputText').value;
+            
+            if (!text.trim()) {
+                alert('Please paste some Facebook search results first!');
+                return;
+            }
+            
+            // Extract Facebook URLs using regex patterns
+            const patterns = [
+                /https:\/\/www\.facebook\.com\/[^)\s\(\[\]<>"']+/gi,
+                /facebook\.com\/[^)\s\(\[\]<>"']+/gi,
+            ];
+            
+            let urls = [];
+            patterns.forEach(pattern => {
+                const matches = text.match(pattern) || [];
+                urls = urls.concat(matches);
+            });
+            
+            // Clean and deduplicate URLs
+            const cleanUrls = [];
+            const seen = new Set();
+            
+            urls.forEach(url => {
+                // Add https if missing
+                if (!url.startsWith('http')) {
+                    url = 'https://' + url;
+                }
+                
+                // Clean up trailing punctuation
+                url = url.replace(/[,\)\]\}\s\(\[\{<>"']+$/, '');
+                
+                // Skip non-business URLs
+                const skipPatterns = [
+                    'facebook.com/search',
+                    'facebook.com/photo.php',
+                    'facebook.com/events',
+                    'facebook.com/groups',
+                    'facebook.com/marketplace',
+                    'facebook.com/watch',
+                    'facebook.com/gaming',
+                    'facebook.com/hashtag',
+                    'facebook.com/pages/category',
+                    'facebook.com/help',
+                    'facebook.com/policies',
+                    'facebook.com/login',
+                    'facebook.com/recover',
+                    '__cft__',
+                    '__tn__'
+                ];
+                
+                const shouldSkip = skipPatterns.some(pattern => url.includes(pattern));
+                
+                if (!shouldSkip && !seen.has(url)) {
+                    seen.add(url);
+                    cleanUrls.push(url);
+                }
+            });
+            
+            displayResults(cleanUrls);
+        }
+        
+        function displayResults(urls) {
+            const resultsDiv = document.getElementById('results');
+            const urlCountDiv = document.getElementById('urlCount');
+            const uniqueCountDiv = document.getElementById('uniqueCount');
+            const urlListDiv = document.getElementById('urlList');
+            const urlOutput = document.getElementById('urlOutput');
+            
+            // Update stats
+            urlCountDiv.textContent = urls.length;
+            uniqueCountDiv.textContent = urls.length; // Same for now
+            
+            // Display URL list
+            urlListDiv.innerHTML = '';
+            urls.forEach((url, index) => {
+                const div = document.createElement('div');
+                div.className = 'url-item';
+                div.textContent = `${index + 1}. ${url}`;
+                urlListDiv.appendChild(div);
+            });
+            
+            // Prepare output for copying
+            urlOutput.value = urls.join('\n');
+            
+            // Show results
+            resultsDiv.style.display = 'block';
+            resultsDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function copyToClipboard() {
+            const urlOutput = document.getElementById('urlOutput');
+            urlOutput.select();
+            document.execCommand('copy');
+            
+            // Visual feedback
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = '✅ Copied!';
+            button.style.background = '#4caf50';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.background = '#007aff';
+            }, 2000);
+        }
+        
+        function clearAll() {
+            document.getElementById('inputText').value = '';
+            document.getElementById('results').style.display = 'none';
+        }
+        
+        // Auto-extract when text is pasted
+        document.getElementById('inputText').addEventListener('paste', () => {
+            setTimeout(() => {
+                if (document.getElementById('inputText').value.includes('facebook.com')) {
+                    extractUrls();
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>

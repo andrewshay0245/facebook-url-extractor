@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facebook URL Extractor</title>
+    <title>Facebook Business Name Extractor</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -75,7 +75,7 @@
             margin-top: 20px;
             border-left: 4px solid #007aff;
         }
-        .url-list {
+        .name-list {
             background: #f2f2f7;
             border-radius: 6px;
             padding: 15px;
@@ -83,14 +83,13 @@
             max-height: 400px;
             overflow-y: auto;
         }
-        .url-item {
+        .name-item {
             padding: 8px 0;
             border-bottom: 1px solid #d2d2d7;
             font-family: monospace;
             font-size: 13px;
-            word-break: break-all;
         }
-        .url-item:last-child {
+        .name-item:last-child {
             border-bottom: none;
         }
         .stats {
@@ -123,7 +122,7 @@
             margin: 0 0 10px 0;
             color: #2e7d32;
         }
-        #urlOutput {
+        #nameOutput {
             width: 100%;
             height: 150px;
             font-family: monospace;
@@ -151,12 +150,31 @@
         .instructions li {
             margin-bottom: 8px;
         }
+        .url-helper {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .url-helper h4 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+        }
+        .search-template {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔗 Facebook URL Extractor</h1>
-        <p class="subtitle">Extract Facebook business URLs from search results</p>
+        <h1>📋 Facebook Business Name Extractor</h1>
+        <p class="subtitle">Extract business names from Facebook search results, then find their pages</p>
         
         <div class="instructions">
             <h3>📋 How to Use:</h3>
@@ -164,8 +182,9 @@
                 <li>Go to Facebook and search for businesses (e.g. "plumber near me")</li>
                 <li>Scroll down to load more results (keep scrolling!)</li>
                 <li>Select all (Cmd+A or Ctrl+A) and copy (Cmd+C or Ctrl+C)</li>
-                <li>Paste the copied text below and click "Extract URLs"</li>
-                <li>Copy the clean URL list to send to Hugo for contact harvesting</li>
+                <li>Paste the copied text below and click "Extract Names"</li>
+                <li>Use the Google search templates to find Facebook pages</li>
+                <li>Send the found URLs to Hugo for contact harvesting</li>
             </ol>
         </div>
         
@@ -173,10 +192,10 @@
 
 After scrolling through Facebook search results, select all the text on the page (Cmd+A) and copy it (Cmd+C), then paste it here.
 
-The tool will automatically find all the Facebook business page URLs and clean them up for you."></textarea>
+The tool will find all the business names and help you locate their Facebook pages."></textarea>
         
         <div class="buttons">
-            <button class="btn-primary" onclick="extractUrls()">Extract URLs</button>
+            <button class="btn-primary" onclick="extractNames()">Extract Names</button>
             <button class="btn-secondary" onclick="clearAll()">Clear</button>
         </div>
         
@@ -184,8 +203,8 @@ The tool will automatically find all the Facebook business page URLs and clean t
             <div class="results">
                 <div class="stats">
                     <div class="stat">
-                        <div class="stat-number" id="urlCount">0</div>
-                        <div class="stat-label">URLs Found</div>
+                        <div class="stat-number" id="nameCount">0</div>
+                        <div class="stat-label">Business Names</div>
                     </div>
                     <div class="stat">
                         <div class="stat-number" id="uniqueCount">0</div>
@@ -193,20 +212,29 @@ The tool will automatically find all the Facebook business page URLs and clean t
                     </div>
                 </div>
                 
-                <div class="url-list" id="urlList"></div>
+                <div class="name-list" id="nameList"></div>
+                
+                <div class="url-helper">
+                    <h4>🔍 Find Facebook URLs</h4>
+                    <p>For each business name above, Google search:</p>
+                    <div class="search-template" id="searchTemplate">[Business Name] facebook</div>
+                    <p style="margin-top: 10px; font-size: 12px;">
+                        Copy each business name + "facebook" into Google, click the Facebook result, copy that URL.
+                    </p>
+                </div>
                 
                 <div class="copy-section">
-                    <h3>📋 Ready for Harvester</h3>
-                    <p>Copy this list and send to Hugo:</p>
-                    <textarea id="urlOutput" readonly></textarea>
-                    <button class="btn-primary" onclick="copyToClipboard()" style="margin-top: 10px;">Copy All URLs</button>
+                    <h3>📋 Business Names List</h3>
+                    <p>Copy these names to search for Facebook pages:</p>
+                    <textarea id="nameOutput" readonly></textarea>
+                    <button class="btn-primary" onclick="copyToClipboard()" style="margin-top: 10px;">Copy All Names</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        function extractUrls() {
+        function extractNames() {
             const text = document.getElementById('inputText').value;
             
             if (!text.trim()) {
@@ -214,83 +242,93 @@ The tool will automatically find all the Facebook business page URLs and clean t
                 return;
             }
             
-            // Extract Facebook URLs using regex patterns
-            const patterns = [
-                /https:\/\/www\.facebook\.com\/[^)\s\(\[\]<>"']+/gi,
-                /facebook\.com\/[^)\s\(\[\]<>"']+/gi,
-            ];
-            
-            let urls = [];
-            patterns.forEach(pattern => {
-                const matches = text.match(pattern) || [];
-                urls = urls.concat(matches);
-            });
-            
-            // Clean and deduplicate URLs
-            const cleanUrls = [];
+            // Split text into lines and look for business patterns
+            const lines = text.split('\n');
+            const businessNames = [];
             const seen = new Set();
             
-            urls.forEach(url => {
-                // Add https if missing
-                if (!url.startsWith('http')) {
-                    url = 'https://' + url;
-                }
+            lines.forEach(line => {
+                line = line.trim();
                 
-                // Clean up trailing punctuation
-                url = url.replace(/[,\)\]\}\s\(\[\{<>"']+$/, '');
+                // Skip empty lines and common Facebook UI text
+                if (!line || line.length < 3) return;
                 
-                // Skip non-business URLs
                 const skipPatterns = [
-                    'facebook.com/search',
-                    'facebook.com/photo.php',
-                    'facebook.com/events',
-                    'facebook.com/groups',
-                    'facebook.com/marketplace',
-                    'facebook.com/watch',
-                    'facebook.com/gaming',
-                    'facebook.com/hashtag',
-                    'facebook.com/pages/category',
-                    'facebook.com/help',
-                    'facebook.com/policies',
-                    'facebook.com/login',
-                    'facebook.com/recover',
-                    '__cft__',
-                    '__tn__'
+                    'facebook', 'home', 'about', 'posts', 'photos', 'videos',
+                    'reviews', 'more', 'see all', 'like', 'follow', 'share',
+                    'search results', 'filters', 'people', 'pages', 'places',
+                    'events', 'groups', 'apps', 'marketplace', 'gaming',
+                    'watch', 'recent', 'suggested', 'sponsored', 'ad',
+                    'create', 'log in', 'sign up', 'help', 'privacy',
+                    'terms', 'cookies', 'see more', 'see fewer', 'hide',
+                    'report', 'block', 'unfollow', 'save', 'edit',
+                    'delete', 'copy', 'embed', 'download', 'upload'
                 ];
                 
-                const shouldSkip = skipPatterns.some(pattern => url.includes(pattern));
+                const isUIText = skipPatterns.some(pattern => 
+                    line.toLowerCase().includes(pattern.toLowerCase())
+                );
                 
-                if (!shouldSkip && !seen.has(url)) {
-                    seen.add(url);
-                    cleanUrls.push(url);
+                if (isUIText) return;
+                
+                // Look for business-like names
+                const businessPatterns = [
+                    // Names ending with business words
+                    /([A-Z][A-Za-z\s&'-]+(?:Plumbing|Electric|HVAC|Heating|Cooling|Repair|Service|Company|LLC|Inc|Corp|Group|Solutions|Contractors?|Associates?))/g,
+                    // Names with location
+                    /([A-Z][A-Za-z\s&'-]+ (?:of|in) [A-Z][A-Za-z\s]+)/g,
+                    // General business names (2-6 words, starts with capital)
+                    /^([A-Z][A-Za-z]+(?:\s+[A-Z&'][A-Za-z]*){1,5})(?:\s|$)/g
+                ];
+                
+                businessPatterns.forEach(pattern => {
+                    const matches = line.match(pattern);
+                    if (matches) {
+                        matches.forEach(match => {
+                            const name = match.trim();
+                            if (name.length > 5 && name.length < 100 && !seen.has(name.toLowerCase())) {
+                                seen.add(name.toLowerCase());
+                                businessNames.push(name);
+                            }
+                        });
+                    }
+                });
+                
+                // Also check if the line itself looks like a business name
+                if (line.length > 5 && line.length < 100 && 
+                    /^[A-Z]/.test(line) && 
+                    !seen.has(line.toLowerCase()) &&
+                    !isUIText) {
+                    seen.add(line.toLowerCase());
+                    businessNames.push(line);
                 }
             });
             
-            displayResults(cleanUrls);
+            displayResults(businessNames);
         }
         
-        function displayResults(urls) {
+        function displayResults(names) {
             const resultsDiv = document.getElementById('results');
-            const urlCountDiv = document.getElementById('urlCount');
+            const nameCountDiv = document.getElementById('nameCount');
             const uniqueCountDiv = document.getElementById('uniqueCount');
-            const urlListDiv = document.getElementById('urlList');
-            const urlOutput = document.getElementById('urlOutput');
+            const nameListDiv = document.getElementById('nameList');
+            const nameOutput = document.getElementById('nameOutput');
             
             // Update stats
-            urlCountDiv.textContent = urls.length;
-            uniqueCountDiv.textContent = urls.length; // Same for now
+            nameCountDiv.textContent = names.length;
+            uniqueCountDiv.textContent = names.length;
             
-            // Display URL list
-            urlListDiv.innerHTML = '';
-            urls.forEach((url, index) => {
+            // Display name list
+            nameListDiv.innerHTML = '';
+            names.forEach((name, index) => {
                 const div = document.createElement('div');
-                div.className = 'url-item';
-                div.textContent = `${index + 1}. ${url}`;
-                urlListDiv.appendChild(div);
+                div.className = 'name-item';
+                div.textContent = `${index + 1}. ${name}`;
+                nameListDiv.appendChild(div);
             });
             
             // Prepare output for copying
-            urlOutput.value = urls.join('\n');
+            nameOutput.value = names.join('\n');
             
             // Show results
             resultsDiv.style.display = 'block';
@@ -298,8 +336,8 @@ The tool will automatically find all the Facebook business page URLs and clean t
         }
         
         function copyToClipboard() {
-            const urlOutput = document.getElementById('urlOutput');
-            urlOutput.select();
+            const nameOutput = document.getElementById('nameOutput');
+            nameOutput.select();
             document.execCommand('copy');
             
             // Visual feedback
@@ -322,9 +360,7 @@ The tool will automatically find all the Facebook business page URLs and clean t
         // Auto-extract when text is pasted
         document.getElementById('inputText').addEventListener('paste', () => {
             setTimeout(() => {
-                if (document.getElementById('inputText').value.includes('facebook.com')) {
-                    extractUrls();
-                }
+                extractNames();
             }, 100);
         });
     </script>
